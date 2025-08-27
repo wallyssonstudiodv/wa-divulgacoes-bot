@@ -1,1 +1,1263 @@
-.
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WA Divulgações Bot</title>
+    <style>
+        :root {
+            --bg-primary: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            --bg-secondary: rgba(255, 255, 255, 0.05);
+            --bg-card: rgba(255, 255, 255, 0.08);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent-blue: #3b82f6;
+            --accent-red: #ef4444;
+            --accent-green: #10b981;
+            --accent-orange: #f97316;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, var(--accent-blue), var(--accent-red));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            border: 1px solid var(--border-color);
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, var(--accent-blue), #1d4ed8);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, var(--accent-green), #059669);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, var(--accent-red), #dc2626);
+            color: white;
+        }
+
+        .btn-orange {
+            background: linear-gradient(45deg, var(--accent-orange), #ea580c);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .nav-btn {
+            padding: 12px 25px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 25px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn.active {
+            background: linear-gradient(45deg, var(--accent-blue), #1d4ed8);
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .status-connected {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-disconnected {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .qr-code-container {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .qr-code-container img {
+            max-width: 256px;
+            width: 100%;
+            height: auto;
+        }
+
+        .groups-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .group-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+        }
+
+        .group-checkbox {
+            margin-right: 10px;
+        }
+
+        .time-inputs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .time-input {
+            width: 100px;
+        }
+
+        .days-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .day-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 10px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+
+        .message.success {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--accent-green);
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--accent-red);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--text-primary);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .scheduled-ad-item {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        .schedule-summary {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 10px;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            width: 90%;
+            max-width: 500px;
+            margin: 0;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 15px; }
+            .nav { flex-direction: column; align-items: center; }
+            .nav-btn { width: 100%; max-width: 300px; }
+            .days-container { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">WA Divulgações Bot</div>
+            <div style="color: var(--text-secondary);">Sistema Completo de WhatsApp</div>
+        </div>
+
+        <!-- Auth Section -->
+        <div id="authSection">
+            <div class="card">
+                <div id="loginForm">
+                    <h2 style="color: var(--accent-blue); margin-bottom: 20px;">Login</h2>
+                    <div id="loginMessage"></div>
+                    <div class="form-group">
+                        <label>Email:</label>
+                        <input type="email" id="loginEmail" placeholder="Digite seu email">
+                    </div>
+                    <div class="form-group">
+                        <label>Senha:</label>
+                        <input type="password" id="loginPassword" placeholder="Digite sua senha">
+                    </div>
+                    <button class="btn btn-primary" onclick="login()">Entrar</button>
+                    <button class="btn btn-success" onclick="showRegister()">Cadastrar</button>
+                </div>
+
+                <div id="registerForm" class="hidden">
+                    <h2 style="color: var(--accent-blue); margin-bottom: 20px;">Cadastro</h2>
+                    <div id="registerMessage"></div>
+                    <div class="form-group">
+                        <label>Nome:</label>
+                        <input type="text" id="registerName" placeholder="Digite seu nome">
+                    </div>
+                    <div class="form-group">
+                        <label>Email:</label>
+                        <input type="email" id="registerEmail" placeholder="Digite seu email">
+                    </div>
+                    <div class="form-group">
+                        <label>Senha:</label>
+                        <input type="password" id="registerPassword" placeholder="Digite sua senha">
+                    </div>
+                    <div class="form-group">
+                        <label>Confirmar Senha:</label>
+                        <input type="password" id="confirmPassword" placeholder="Confirme sua senha">
+                    </div>
+                    <button class="btn btn-primary" onclick="register()">Cadastrar</button>
+                    <button class="btn btn-success" onclick="showLogin()">Voltar ao Login</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div id="dashboardSection" class="hidden">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                    <div>
+                        <h3>Bem-vindo, <span id="userName"></span>!</h3>
+                        <p style="color: var(--text-secondary);">Gerencie seu bot WhatsApp</p>
+                    </div>
+                    <button class="btn btn-danger" onclick="logout()">Sair</button>
+                </div>
+            </div>
+
+            <!-- WhatsApp Connection Status -->
+            <div class="card">
+                <h3 style="color: var(--accent-blue); margin-bottom: 15px;">Conexão WhatsApp</h3>
+                <div id="connectionStatus" class="connection-status status-disconnected">
+                    <span id="statusIcon">🔴</span>
+                    <span id="statusText">Desconectado</span>
+                </div>
+                
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-success" onclick="connectWhatsApp()">Conectar WhatsApp</button>
+                    <button class="btn btn-danger" onclick="disconnectWhatsApp()">Desconectar</button>
+                </div>
+
+                <div id="qrCodeContainer" class="hidden">
+                    <div class="qr-code-container">
+                        <h4>Escaneie o QR Code com seu WhatsApp</h4>
+                        <img id="qrCodeImage" src="" alt="QR Code">
+                        <p style="color: var(--text-secondary); margin-top: 10px;">
+                            Abra o WhatsApp > Menu > WhatsApp Web > Escanear código
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="nav">
+                <button class="nav-btn active" onclick="showSection('dashboard')">Dashboard</button>
+                <button class="nav-btn" onclick="showSection('createAd')">Criar Anúncio</button>
+                <button class="nav-btn" onclick="showSection('manageAds')">Gerenciar Anúncios</button>
+                <button class="nav-btn" onclick="showSection('scheduleAds')">Agendamentos</button>
+                <button class="nav-btn" onclick="showSection('groups')">Grupos</button>
+            </div>
+
+            <!-- Dashboard Content -->
+            <div id="dashboardContent">
+                <div class="card">
+                    <h3 style="color: var(--accent-blue); margin-bottom: 15px;">Estatísticas</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                        <div style="text-align: center; padding: 15px; background: var(--bg-secondary); border-radius: 10px;">
+                            <div style="font-size: 2rem; color: var(--accent-blue);" id="totalAds">0</div>
+                            <div style="color: var(--text-secondary);">Anúncios</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: var(--bg-secondary); border-radius: 10px;">
+                            <div style="font-size: 2rem; color: var(--accent-green);" id="activeAds">0</div>
+                            <div style="color: var(--text-secondary);">Ativos</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: var(--bg-secondary); border-radius: 10px;">
+                            <div style="font-size: 2rem; color: var(--accent-orange);" id="scheduledCount">0</div>
+                            <div style="color: var(--text-secondary);">Agendados</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: var(--bg-secondary); border-radius: 10px;">
+                            <div style="font-size: 2rem; color: var(--accent-blue);" id="groupsCount">0</div>
+                            <div style="color: var(--text-secondary);">Grupos</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create Ad Section -->
+            <div id="createAdContent" class="hidden">
+                <div class="card">
+                    <h3 style="color: var(--accent-blue); margin-bottom: 15px;">Criar Anúncio</h3>
+                    <div id="createAdMessage"></div>
+                    
+                    <div class="form-group">
+                        <label>Título:</label>
+                        <input type="text" id="adTitle" placeholder="Título do anúncio">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Mensagem:</label>
+                        <textarea id="adMessage" placeholder="Mensagem que será enviada" rows="5"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Palavras-chave (separadas por vírgula):</label>
+                        <input type="text" id="adKeywords" placeholder="Ex: produto, vendas, info">
+                        <small style="color: var(--text-secondary);">Deixe vazio para resposta padrão</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Status:</label>
+                        <select id="adStatus">
+                            <option value="active">Ativo</option>
+                            <option value="inactive">Inativo</option>
+                        </select>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="createAd()">Criar Anúncio</button>
+                </div>
+            </div>
+
+            <!-- Manage Ads Section -->
+            <div id="manageAdsContent" class="hidden">
+                <div class="card">
+                    <h3 style="color: var(--accent-blue); margin-bottom: 15px;">Gerenciar Anúncios</h3>
+                    <div id="manageAdsMessage"></div>
+                    <div id="adsList"></div>
+                </div>
+            </div>
+
+            <!-- Schedule Ads Section -->
+            <div id="scheduleAdsContent" class="hidden">
+                <div class="card">
+                    <h3 style="color: var(--accent-blue); margin-bottom: 15px;">Agendar Mensagens</h3>
+                    <div id="scheduleMessage"></div>
+                    
+                    <div class="form-group">
+                        <label>Título do Agendamento:</label>
+                        <input type="text" id="scheduleTitle" placeholder="Nome do agendamento">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Mensagem:</label>
+                        <textarea id="scheduleMessageText" placeholder="Mensagem que será enviada" rows="5"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Dias da Semana:</label>
+                        <div class="days-container">
+                            <label class="day-checkbox">
+                                <input type="checkbox" value="0"> Domingo
+                            </label>
+                            <label class="day-checkbox">
+                                <input type="checkbox" value="1"> Segunda
+                            </label>
+                            <label class="day-checkbox">
+                                <input type="checkbox" value="2"> Terça
+                            </label>
+                            <label class="day-checkbox">
+                                <input type="checkbox" value="3"> Quarta
+                            </label>
+                            <label class="day-checkbox">
+                                <input type="checkbox" value="4"> Quinta
+                            </label>
+                            <label class="day-checkbox">
+                                <input type="checkbox" value="5"> Sexta
+                            </label>
+                            <label class="day-checkbox">
+                                <input type="checkbox" value="6"> Sábado
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Horários:</label>
+                        <div id="timeInputs" class="time-inputs">
+                            <input type="time" class="time-input" value="09:00">
+                        </div>
+                        <button type="button" class="btn btn-success" onclick="addTimeInput()">+ Adicionar Horário</button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Selecionar Grupos:</label>
+                        <div id="groupsSelection" class="groups-container">
+                            <p style="color: var(--text-secondary);">Conecte o WhatsApp para ver os grupos</p>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="createScheduledAd()">Criar Agendamento</button>
+                </div>
+
+                <!-- Lista de Agendamentos -->
+                <div class="card">
+                    <h3 style="color: var(--accent-orange); margin-bottom: 15px;">Agendamentos Ativos</h3>
+                    <div id="scheduledAdsList"></div>
+                </div>
+            </div>
+
+            <!-- Groups Section -->
+            <div id="groupsContent" class="hidden">
+                <div class="card">
+                    <h3 style="color: var(--accent-blue); margin-bottom: 15px;">Meus Grupos</h3>
+                    <div id="groupsMessage"></div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn btn-success" onclick="refreshGroups()">Atualizar Lista</button>
+                        <button class="btn btn-orange" onclick="testMessage()">Enviar Mensagem Teste</button>
+                    </div>
+                    
+                    <div id="groupsList" class="groups-container">
+                        <p style="color: var(--text-secondary);">Conecte o WhatsApp para ver os grupos</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Message Modal -->
+            <div id="testMessageModal" class="hidden modal">
+                <div class="card modal-content">
+                    <h3 style="color: var(--accent-orange); margin-bottom: 15px;">Mensagem Teste</h3>
+                    
+                    <div class="form-group">
+                        <label>Selecionar Grupo:</label>
+                        <select id="testGroupSelect">
+                            <option value="">Selecione um grupo</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Mensagem:</label>
+                        <textarea id="testMessageText" placeholder="Digite a mensagem de teste" rows="4"></textarea>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-orange" onclick="sendTestMessage()">Enviar</button>
+                        <button class="btn btn-danger" onclick="closeTestMessageModal()">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Ad Modal -->
+            <div id="editAdModal" class="hidden modal">
+                <div class="card modal-content">
+                    <h3 style="color: var(--accent-blue); margin-bottom: 15px;">Editar Anúncio</h3>
+                    <div id="editAdMessage"></div>
+                    
+                    <div class="form-group">
+                        <label>Título:</label>
+                        <input type="text" id="editAdTitle" placeholder="Título do anúncio">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Mensagem:</label>
+                        <textarea id="editAdMessageText" placeholder="Mensagem que será enviada" rows="5"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Palavras-chave (separadas por vírgula):</label>
+                        <input type="text" id="editAdKeywords" placeholder="Ex: produto, vendas, info">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Status:</label>
+                        <select id="editAdStatus">
+                            <option value="active">Ativo</option>
+                            <option value="inactive">Inativo</option>
+                        </select>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="saveEditAd()">Salvar</button>
+                        <button class="btn btn-danger" onclick="closeEditAdModal()">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables (using memory storage instead of localStorage)
+        let currentUser = null;
+        let users = [
+            { id: 1, name: 'Admin', email: 'admin@test.com', password: '123456', createdAt: new Date().toISOString() }
+        ];
+        let ads = [];
+        let scheduledAds = [];
+        let groups = [];
+        let isConnected = false;
+        let editingAdId = null;
+
+        // Mock socket for demonstration
+        let socket = {
+            emit: function(event, data) {
+                console.log('Socket emit:', event, data);
+                // Simulate responses for demo
+                setTimeout(() => {
+                    if (event === 'start-whatsapp') {
+                        this.trigger('qr-code', { qrCode: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZmZmIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk1vY2sgUVIgQ29kZTwvdGV4dD48L3N2Zz4=' });
+                        setTimeout(() => {
+                            this.trigger('connection-status', { status: 'connected' });
+                            this.trigger('groups-list', { 
+                                groups: [
+                                    { id: '123@g.us', name: 'Grupo Teste 1', participantCount: 25 },
+                                    { id: '456@g.us', name: 'Grupo Teste 2', participantCount: 50 }
+                                ]
+                            });
+                        }, 3000);
+                    }
+                }, 1000);
+            },
+            trigger: function(event, data) {
+                if (event === 'qr-code') {
+                    document.getElementById('qrCodeImage').src = data.qrCode;
+                    document.getElementById('qrCodeContainer').classList.remove('hidden');
+                    updateConnectionStatus('waiting', 'Aguardando escaneamento do QR Code');
+                } else if (event === 'connection-status') {
+                    if (data.status === 'connected') {
+                        isConnected = true;
+                        updateConnectionStatus('connected', 'Conectado ao WhatsApp');
+                        document.getElementById('qrCodeContainer').classList.add('hidden');
+                    }
+                } else if (event === 'groups-list') {
+                    groups = data.groups;
+                    updateGroupsList();
+                    updateStats();
+                }
+            }
+        };
+
+        // Auth functions
+        function showLogin() {
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+            clearMessages();
+        }
+
+        function showRegister() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.remove('hidden');
+            clearMessages();
+        }
+
+        function login() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+
+            if (!email || !password) {
+                showMessage('loginMessage', 'Preencha todos os campos', 'error');
+                return;
+            }
+
+            const user = users.find(u => u.email === email && u.password === password);
+            if (user) {
+                currentUser = user;
+                showDashboard();
+                loadData();
+            } else {
+                showMessage('loginMessage', 'Email ou senha incorretos', 'error');
+            }
+        }
+
+        function register() {
+            const name = document.getElementById('registerName').value.trim();
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value.trim();
+            const confirmPassword = document.getElementById('confirmPassword').value.trim();
+
+            if (!name || !email || !password || !confirmPassword) {
+                showMessage('registerMessage', 'Cadastro realizado com sucesso!', 'success');
+            setTimeout(() => {
+                showLogin();
+                clearForm('register');
+            }, 2000);
+        }
+
+        function logout() {
+            currentUser = null;
+            isConnected = false;
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('dashboardSection').classList.add('hidden');
+            clearForm('login');
+            clearMessages();
+        }
+
+        function showDashboard() {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.remove('hidden');
+            document.getElementById('userName').textContent = currentUser.name;
+            showSection('dashboard');
+        }
+
+        // Navigation
+        function showSection(section) {
+            // Remove active class from all nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            // Hide all content sections
+            document.querySelectorAll('[id$="Content"]').forEach(content => content.classList.add('hidden'));
+
+            const sections = {
+                'dashboard': { content: 'dashboardContent', btnIndex: 0 },
+                'createAd': { content: 'createAdContent', btnIndex: 1 },
+                'manageAds': { content: 'manageAdsContent', btnIndex: 2, action: loadManageAds },
+                'scheduleAds': { content: 'scheduleAdsContent', btnIndex: 3, action: loadScheduledAds },
+                'groups': { content: 'groupsContent', btnIndex: 4 }
+            };
+
+            if (sections[section]) {
+                document.getElementById(sections[section].content).classList.remove('hidden');
+                const navButtons = document.querySelectorAll('.nav-btn');
+                if (navButtons[sections[section].btnIndex]) {
+                    navButtons[sections[section].btnIndex].classList.add('active');
+                }
+                if (sections[section].action) {
+                    sections[section].action();
+                }
+            }
+            clearMessages();
+        }
+
+        // WhatsApp connection
+        function connectWhatsApp() {
+            if (!currentUser) return;
+            socket.emit('start-whatsapp', { userId: currentUser.id });
+            updateConnectionStatus('connecting', 'Conectando...');
+        }
+
+        function disconnectWhatsApp() {
+            if (!currentUser) return;
+            isConnected = false;
+            updateConnectionStatus('disconnected', 'Desconectado do WhatsApp');
+            document.getElementById('qrCodeContainer').classList.add('hidden');
+            groups = [];
+            updateGroupsList();
+            updateStats();
+        }
+
+        function updateConnectionStatus(status, text) {
+            const statusElement = document.getElementById('connectionStatus');
+            const iconElement = document.getElementById('statusIcon');
+            const textElement = document.getElementById('statusText');
+
+            statusElement.className = 'connection-status';
+            
+            switch (status) {
+                case 'connected':
+                    statusElement.classList.add('status-connected');
+                    iconElement.textContent = '🟢';
+                    break;
+                case 'connecting':
+                case 'waiting':
+                    statusElement.classList.add('status-disconnected');
+                    iconElement.textContent = '🟡';
+                    break;
+                default:
+                    statusElement.classList.add('status-disconnected');
+                    iconElement.textContent = '🔴';
+            }
+            
+            textElement.textContent = text;
+        }
+
+        // Data management
+        function loadData() {
+            // Filter data for current user
+            ads = ads.filter(ad => ad.userId === currentUser.id);
+            scheduledAds = scheduledAds.filter(ad => ad.userId === currentUser.id);
+            updateStats();
+        }
+
+        function updateStats() {
+            document.getElementById('totalAds').textContent = ads.length;
+            document.getElementById('activeAds').textContent = ads.filter(ad => ad.status === 'active').length;
+            document.getElementById('scheduledCount').textContent = scheduledAds.filter(ad => ad.isActive).length;
+            document.getElementById('groupsCount').textContent = groups.length;
+        }
+
+        // Ad management
+        function createAd() {
+            const title = document.getElementById('adTitle').value.trim();
+            const message = document.getElementById('adMessage').value.trim();
+            const keywords = document.getElementById('adKeywords').value.trim();
+            const status = document.getElementById('adStatus').value;
+
+            if (!title || !message) {
+                showMessage('createAdMessage', 'Preencha título e mensagem', 'error');
+                return;
+            }
+
+            const newAd = {
+                id: Date.now(),
+                userId: currentUser.id,
+                title,
+                message,
+                keywords: keywords ? keywords.split(',').map(k => k.trim()) : [],
+                status,
+                createdAt: new Date().toISOString()
+            };
+
+            ads.push(newAd);
+            clearForm('createAd');
+            updateStats();
+            showMessage('createAdMessage', 'Anúncio criado com sucesso!', 'success');
+        }
+
+        function loadManageAds() {
+            const adsList = document.getElementById('adsList');
+            
+            if (ads.length === 0) {
+                adsList.innerHTML = '<p style="color: var(--text-secondary);">Nenhum anúncio encontrado</p>';
+                return;
+            }
+
+            adsList.innerHTML = ads.map(ad => `
+                <div style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap;">
+                        <h4 style="color: var(--accent-blue);">${ad.title}</h4>
+                        <span style="padding: 5px 10px; border-radius: 15px; font-size: 12px; ${ad.status === 'active' ? 'background: rgba(16, 185, 129, 0.2); color: var(--accent-green)' : 'background: rgba(239, 68, 68, 0.2); color: var(--accent-red)'}">
+                            ${ad.status === 'active' ? 'Ativo' : 'Inativo'}
+                        </span>
+                    </div>
+                    <p style="margin-bottom: 10px;">${ad.message}</p>
+                    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 15px;">
+                        Palavras-chave: ${ad.keywords.length > 0 ? ad.keywords.join(', ') : 'Nenhuma (resposta padrão)'}
+                    </p>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="editAd(${ad.id})">Editar</button>
+                        <button class="btn ${ad.status === 'active' ? 'btn-danger' : 'btn-success'}" onclick="toggleAdStatus(${ad.id})">
+                            ${ad.status === 'active' ? 'Desativar' : 'Ativar'}
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteAd(${ad.id})">Excluir</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function editAd(adId) {
+            const ad = ads.find(a => a.id === adId);
+            if (!ad) return;
+
+            editingAdId = adId;
+            document.getElementById('editAdTitle').value = ad.title;
+            document.getElementById('editAdMessageText').value = ad.message;
+            document.getElementById('editAdKeywords').value = ad.keywords.join(', ');
+            document.getElementById('editAdStatus').value = ad.status;
+            
+            document.getElementById('editAdModal').classList.remove('hidden');
+        }
+
+        function saveEditAd() {
+            const title = document.getElementById('editAdTitle').value.trim();
+            const message = document.getElementById('editAdMessageText').value.trim();
+            const keywords = document.getElementById('editAdKeywords').value.trim();
+            const status = document.getElementById('editAdStatus').value;
+
+            if (!title || !message) {
+                showMessage('editAdMessage', 'Preencha título e mensagem', 'error');
+                return;
+            }
+
+            const adIndex = ads.findIndex(a => a.id === editingAdId);
+            if (adIndex !== -1) {
+                ads[adIndex] = {
+                    ...ads[adIndex],
+                    title,
+                    message,
+                    keywords: keywords ? keywords.split(',').map(k => k.trim()) : [],
+                    status,
+                    updatedAt: new Date().toISOString()
+                };
+
+                closeEditAdModal();
+                loadManageAds();
+                updateStats();
+                showMessage('manageAdsMessage', 'Anúncio atualizado com sucesso!', 'success');
+            }
+        }
+
+        function closeEditAdModal() {
+            document.getElementById('editAdModal').classList.add('hidden');
+            editingAdId = null;
+            clearMessages('editAdMessage');
+        }
+
+        function toggleAdStatus(adId) {
+            const adIndex = ads.findIndex(a => a.id === adId);
+            if (adIndex !== -1) {
+                ads[adIndex].status = ads[adIndex].status === 'active' ? 'inactive' : 'active';
+                loadManageAds();
+                updateStats();
+                showMessage('manageAdsMessage', 'Status atualizado!', 'success');
+            }
+        }
+
+        function deleteAd(adId) {
+            if (!confirm('Excluir este anúncio?')) return;
+            
+            ads = ads.filter(a => a.id !== adId);
+            loadManageAds();
+            updateStats();
+            showMessage('manageAdsMessage', 'Anúncio excluído!', 'success');
+        }
+
+        // Scheduled ads
+        function addTimeInput() {
+            const timeInputs = document.getElementById('timeInputs');
+            const input = document.createElement('input');
+            input.type = 'time';
+            input.className = 'time-input';
+            timeInputs.appendChild(input);
+        }
+
+        function createScheduledAd() {
+            const title = document.getElementById('scheduleTitle').value.trim();
+            const message = document.getElementById('scheduleMessageText').value.trim();
+            
+            const daysOfWeek = Array.from(document.querySelectorAll('.day-checkbox input:checked')).map(cb => parseInt(cb.value));
+            const times = Array.from(document.querySelectorAll('.time-input')).map(input => input.value).filter(t => t);
+            const selectedGroups = Array.from(document.querySelectorAll('#groupsSelection input:checked')).map(cb => cb.value);
+
+            if (!title || !message || daysOfWeek.length === 0 || times.length === 0 || selectedGroups.length === 0) {
+                showMessage('scheduleMessage', 'Preencha todos os campos e selecione pelo menos um dia, horário e grupo', 'error');
+                return;
+            }
+
+            const newScheduled = {
+                id: Date.now(),
+                userId: currentUser.id,
+                title,
+                message,
+                daysOfWeek,
+                times,
+                selectedGroups,
+                isActive: true,
+                createdAt: new Date().toISOString()
+            };
+
+            scheduledAds.push(newScheduled);
+            clearForm('schedule');
+            updateStats();
+            loadScheduledAds();
+            showMessage('scheduleMessage', 'Agendamento criado com sucesso!', 'success');
+        }
+
+        function loadScheduledAds() {
+            updateGroupsSelection();
+            
+            const scheduledList = document.getElementById('scheduledAdsList');
+            const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            
+            if (scheduledAds.length === 0) {
+                scheduledList.innerHTML = '<p style="color: var(--text-secondary);">Nenhum agendamento encontrado</p>';
+                return;
+            }
+
+            scheduledList.innerHTML = scheduledAds.map(scheduled => `
+                <div class="scheduled-ad-item">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap;">
+                        <h4 style="color: var(--accent-orange);">${scheduled.title}</h4>
+                        <span style="padding: 5px 10px; border-radius: 15px; font-size: 12px; ${scheduled.isActive ? 'background: rgba(16, 185, 129, 0.2); color: var(--accent-green)' : 'background: rgba(239, 68, 68, 0.2); color: var(--accent-red)'}">
+                            ${scheduled.isActive ? 'Ativo' : 'Inativo'}
+                        </span>
+                    </div>
+                    <p style="margin-bottom: 10px;">${scheduled.message}</p>
+                    <div class="schedule-summary">
+                        <strong>Dias:</strong> ${scheduled.daysOfWeek.map(d => dayNames[d]).join(', ')}<br>
+                        <strong>Horários:</strong> ${scheduled.times.join(', ')}<br>
+                        <strong>Grupos:</strong> ${scheduled.selectedGroups.length} selecionados
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                        <button class="btn ${scheduled.isActive ? 'btn-danger' : 'btn-success'}" onclick="toggleScheduledStatus(${scheduled.id})">
+                            ${scheduled.isActive ? 'Desativar' : 'Ativar'}
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteScheduled(${scheduled.id})">Excluir</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleScheduledStatus(scheduledId) {
+            const scheduledIndex = scheduledAds.findIndex(s => s.id === scheduledId);
+            if (scheduledIndex !== -1) {
+                scheduledAds[scheduledIndex].isActive = !scheduledAds[scheduledIndex].isActive;
+                loadScheduledAds();
+                updateStats();
+                showMessage('scheduleMessage', 'Status do agendamento atualizado!', 'success');
+            }
+        }
+
+        function deleteScheduled(scheduledId) {
+            if (!confirm('Excluir este agendamento?')) return;
+            
+            scheduledAds = scheduledAds.filter(s => s.id !== scheduledId);
+            loadScheduledAds();
+            updateStats();
+            showMessage('scheduleMessage', 'Agendamento excluído!', 'success');
+        }
+
+        // Groups management
+        function updateGroupsList() {
+            const groupsList = document.getElementById('groupsList');
+            
+            if (groups.length === 0) {
+                groupsList.innerHTML = '<p style="color: var(--text-secondary);">Nenhum grupo encontrado</p>';
+                return;
+            }
+
+            groupsList.innerHTML = groups.map(group => `
+                <div class="group-item">
+                    <div>
+                        <h4 style="color: var(--accent-blue);">${group.name}</h4>
+                        <p style="color: var(--text-secondary); font-size: 14px;">${group.participantCount} membros</p>
+                        <p style="color: var(--text-secondary); font-size: 12px; font-family: monospace;">${group.id}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateGroupsSelection() {
+            const groupsSelection = document.getElementById('groupsSelection');
+            
+            if (groups.length === 0) {
+                groupsSelection.innerHTML = '<p style="color: var(--text-secondary);">Conecte o WhatsApp para ver os grupos</p>';
+                return;
+            }
+
+            groupsSelection.innerHTML = groups.map(group => `
+                <label class="group-item" style="cursor: pointer;">
+                    <input type="checkbox" value="${group.id}" class="group-checkbox">
+                    <div>
+                        <strong>${group.name}</strong>
+                        <div style="color: var(--text-secondary); font-size: 14px;">${group.participantCount} membros</div>
+                    </div>
+                </label>
+            `).join('');
+        }
+
+        function refreshGroups() {
+            if (currentUser && isConnected) {
+                showMessage('groupsMessage', 'Atualizando lista de grupos...', 'success');
+                socket.emit('get-groups', { userId: currentUser.id });
+            } else {
+                showMessage('groupsMessage', 'Conecte o WhatsApp primeiro', 'error');
+            }
+        }
+
+        function testMessage() {
+            if (!isConnected) {
+                showMessage('groupsMessage', 'Conecte o WhatsApp primeiro', 'error');
+                return;
+            }
+            
+            if (groups.length === 0) {
+                showMessage('groupsMessage', 'Nenhum grupo disponível', 'error');
+                return;
+            }
+            
+            // Populate test group select
+            const testGroupSelect = document.getElementById('testGroupSelect');
+            testGroupSelect.innerHTML = '<option value="">Selecione um grupo</option>' +
+                groups.map(group => `<option value="${group.id}">${group.name}</option>`).join('');
+            
+            document.getElementById('testMessageModal').classList.remove('hidden');
+        }
+
+        function closeTestMessageModal() {
+            document.getElementById('testMessageModal').classList.add('hidden');
+            document.getElementById('testMessageText').value = '';
+            document.getElementById('testGroupSelect').value = '';
+        }
+
+        function sendTestMessage() {
+            const groupId = document.getElementById('testGroupSelect').value;
+            const message = document.getElementById('testMessageText').value.trim();
+
+            if (!groupId || !message) {
+                showMessage('groupsMessage', 'Selecione um grupo e digite uma mensagem', 'error');
+                return;
+            }
+
+            socket.emit('send-test-message', {
+                userId: currentUser.id,
+                groupId,
+                message
+            });
+
+            closeTestMessageModal();
+            showMessage('groupsMessage', 'Mensagem enviada com sucesso!', 'success');
+        }
+
+        // Utility functions
+        function showMessage(containerId, message, type) {
+            const container = document.getElementById(containerId) || document.getElementById(containerId.replace('Message', ''));
+            if (!container) return;
+            
+            // Remove existing messages in this container
+            const existingMessages = container.querySelectorAll('.message');
+            existingMessages.forEach(msg => msg.remove());
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = message;
+            
+            container.insertBefore(messageDiv, container.firstChild);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.remove();
+                }
+            }, 5000);
+        }
+
+        function clearMessages(containerId = null) {
+            if (containerId) {
+                const container = document.getElementById(containerId);
+                if (container) {
+                    container.querySelectorAll('.message').forEach(msg => msg.remove());
+                }
+            } else {
+                // Clear all messages
+                document.querySelectorAll('.message').forEach(msg => msg.remove());
+            }
+        }
+
+        function clearForm(formType) {
+            switch (formType) {
+                case 'login':
+                    document.getElementById('loginEmail').value = '';
+                    document.getElementById('loginPassword').value = '';
+                    break;
+                case 'register':
+                    document.getElementById('registerName').value = '';
+                    document.getElementById('registerEmail').value = '';
+                    document.getElementById('registerPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                    break;
+                case 'createAd':
+                    document.getElementById('adTitle').value = '';
+                    document.getElementById('adMessage').value = '';
+                    document.getElementById('adKeywords').value = '';
+                    document.getElementById('adStatus').value = 'active';
+                    break;
+                case 'schedule':
+                    document.getElementById('scheduleTitle').value = '';
+                    document.getElementById('scheduleMessageText').value = '';
+                    document.querySelectorAll('.day-checkbox input').forEach(cb => cb.checked = false);
+                    document.querySelectorAll('#groupsSelection input').forEach(cb => cb.checked = false);
+                    // Reset time inputs to just one
+                    const timeInputs = document.getElementById('timeInputs');
+                    timeInputs.innerHTML = '<input type="time" class="time-input" value="09:00">';
+                    break;
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Auto-login for demo (remove in production)
+            if (!currentUser) {
+                document.getElementById('loginEmail').value = 'admin@test.com';
+                document.getElementById('loginPassword').value = '123456';
+            }
+        });
+
+        // Close modals when clicking outside
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                if (e.target.id === 'testMessageModal') {
+                    closeTestMessageModal();
+                } else if (e.target.id === 'editAdModal') {
+                    closeEditAdModal();
+                }
+            }
+        });
+
+        // Handle Enter key for login
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                if (!document.getElementById('authSection').classList.contains('hidden')) {
+                    if (!document.getElementById('loginForm').classList.contains('hidden')) {
+                        login();
+                    } else if (!document.getElementById('registerForm').classList.contains('hidden')) {
+                        register();
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>', 'Preencha todos os campos', 'error');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showMessage('registerMessage', 'Senhas não coincidem', 'error');
+                return;
+            }
+
+            if (users.find(u => u.email === email)) {
+                showMessage('registerMessage', 'Email já cadastrado', 'error');
+                return;
+            }
+
+            const newUser = {
+                id: Date.now(),
+                name,
+                email,
+                password,
+                createdAt: new Date().toISOString()
+            };
+
+            users.push(newUser);
+            showMessage('registerMessage

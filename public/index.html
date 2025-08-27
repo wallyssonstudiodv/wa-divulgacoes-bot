@@ -716,8 +716,44 @@
             const password = document.getElementById('registerPassword').value.trim();
             const confirmPassword = document.getElementById('confirmPassword').value.trim();
 
+            // CORREÇÃO: Validação completa dos campos
             if (!name || !email || !password || !confirmPassword) {
-                showMessage('registerMessage', 'Cadastro realizado com sucesso!', 'success');
+                showMessage('registerMessage', 'Preencha todos os campos', 'error');
+                return;
+            }
+
+            // Validação de senhas coincidentes
+            if (password !== confirmPassword) {
+                showMessage('registerMessage', 'Senhas não coincidem', 'error');
+                return;
+            }
+
+            // Validação de email já cadastrado
+            if (users.find(u => u.email === email)) {
+                showMessage('registerMessage', 'Email já cadastrado', 'error');
+                return;
+            }
+
+            // Validação de formato do email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showMessage('registerMessage', 'Email inválido', 'error');
+                return;
+            }
+
+            // Criar novo usuário
+            const newUser = {
+                id: Date.now(),
+                name,
+                email,
+                password,
+                createdAt: new Date().toISOString()
+            };
+
+            users.push(newUser);
+            showMessage('registerMessage', 'Cadastro realizado com sucesso!', 'success');
+            
+            // Limpar formulário e voltar para login após 2 segundos
             setTimeout(() => {
                 showLogin();
                 clearForm('register');
@@ -1237,27 +1273,4 @@
         });
     </script>
 </body>
-</html>', 'Preencha todos os campos', 'error');
-                return;
-            }
-
-            if (password !== confirmPassword) {
-                showMessage('registerMessage', 'Senhas não coincidem', 'error');
-                return;
-            }
-
-            if (users.find(u => u.email === email)) {
-                showMessage('registerMessage', 'Email já cadastrado', 'error');
-                return;
-            }
-
-            const newUser = {
-                id: Date.now(),
-                name,
-                email,
-                password,
-                createdAt: new Date().toISOString()
-            };
-
-            users.push(newUser);
-            showMessage('registerMessage
+</html>

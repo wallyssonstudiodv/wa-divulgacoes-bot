@@ -332,11 +332,11 @@
                     <div id="loginMessage"></div>
                     <div class="form-group">
                         <label>Email:</label>
-                        <input type="email" id="loginEmail" placeholder="Digite seu email">
+                        <input type="email" id="loginEmail" placeholder="Digite seu email" value="admin@test.com">
                     </div>
                     <div class="form-group">
                         <label>Senha:</label>
-                        <input type="password" id="loginPassword" placeholder="Digite sua senha">
+                        <input type="password" id="loginPassword" placeholder="Digite sua senha" value="123456">
                     </div>
                     <button class="btn btn-primary" onclick="login()">Entrar</button>
                     <button class="btn btn-success" onclick="showRegister()">Cadastrar</button>
@@ -627,56 +627,140 @@
         </div>
     </div>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script>
-        // Global variables (using memory storage instead of localStorage)
+        // Global variables
         let currentUser = null;
-        let users = [
-            { id: 1, name: 'Admin', email: 'admin@test.com', password: '123456', createdAt: new Date().toISOString() }
-        ];
+        let authToken = null;
+        let socket = null;
         let ads = [];
         let scheduledAds = [];
         let groups = [];
         let isConnected = false;
         let editingAdId = null;
 
-        // Mock socket for demonstration
-        let socket = {
-            emit: function(event, data) {
-                console.log('Socket emit:', event, data);
-                // Simulate responses for demo
-                setTimeout(() => {
-                    if (event === 'start-whatsapp') {
-                        this.trigger('qr-code', { qrCode: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZmZmIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk1vY2sgUVIgQ29kZTwvdGV4dD48L3N2Zz4=' });
-                        setTimeout(() => {
-                            this.trigger('connection-status', { status: 'connected' });
-                            this.trigger('groups-list', { 
-                                groups: [
-                                    { id: '123@g.us', name: 'Grupo Teste 1', participantCount: 25 },
-                                    { id: '456@g.us', name: 'Grupo Teste 2', participantCount: 50 }
-                                ]
-                            });
-                        }, 3000);
+        // API Base URL
+        const API_BASE = window.location.origin + '/api';
+
+        // Initialize socket connection
+        function initSocket() {
+            if (!socket) {
+                socket = io();
+                
+                socket.on('qr-code', (data) => {
+                    if (data.userId === currentUser.id) {
+                        document.getElementById('qrCodeImage').src = data.qrCode;
+                        document.getElementById('qrCodeContainer').classList.remove('hidden');
+                        updateConnectionStatus('waiting', 'Aguardando escaneamento do QR Code');
                     }
-                }, 1000);
-            },
-            trigger: function(event, data) {
-                if (event === 'qr-code') {
-                    document.getElementById('qrCodeImage').src = data.qrCode;
-                    document.getElementById('qrCodeContainer').classList.remove('hidden');
-                    updateConnectionStatus('waiting', 'Aguardando escaneamento do QR Code');
-                } else if (event === 'connection-status') {
-                    if (data.status === 'connected') {
-                        isConnected = true;
-                        updateConnectionStatus('connected', 'Conectado ao WhatsApp');
-                        document.getElementById('qrCodeContainer').classList.add('hidden');
+                });
+
+                socket.on('connection-status', (data) => {
+                    if (data.userId === currentUser.id) {
+                        if (data.status === 'connected') {
+                            isConnected = true;
+                            updateConnectionStatus('connected', 'Conectado ao WhatsApp');
+                            document.getElementById('qrCodeContainer').classList.add('hidden');
+                        } else {
+                            isConnected = false;
+                            updateConnectionStatus('disconnected', 'Desconectado do WhatsApp');
+                        }
                     }
-                } else if (event === 'groups-list') {
-                    groups = data.groups;
-                    updateGroupsList();
-                    updateStats();
+                });
+
+                socket.on('groups-list', (data) => {
+                    if (data.userId === currentUser.id) {
+                        groups = data.groups;
+                        updateGroupsList();
+                        updateGroupsSelection();
+                        updateStats();
+                    }
+                });
+
+                socket.on('test-message-sent', (data) => {
+                    if (data.success) {
+                        showMessage('groupsMessage', 'Mensagem teste enviada com sucesso!', 'success');
+                    } else {
+                        showMessage('groupsMessage', 'Erro ao enviar mensagem: ' + data.error, 'error');
+                    }
+                });
+            }
+        }
+
+        // API functions
+        async function apiRequest(endpoint, options = {}) {
+            const config = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+                },
+                ...options
+            };
+
+            if (config.body && typeof config.body === 'object') {
+                config.body = JSON.stringify(config.body);
+            }
+
+            // Simulate API responses for demo
+            if (endpoint === '/login' && options.method === 'POST') {
+                const body = JSON.parse(config.body);
+                if (body.email === 'admin@test.com' && body.password === '123456') {
+                    return {
+                        token: 'demo-token-123',
+                        user: { id: 1, name: 'Usuário Demo', email: body.email }
+                    };
+                } else {
+                    throw new Error('Email ou senha incorretos');
                 }
             }
-        };
+
+            if (endpoint === '/register' && options.method === 'POST') {
+                return { success: true };
+            }
+
+            if (endpoint === '/ads') {
+                if (options.method === 'POST') {
+                    const body = JSON.parse(config.body);
+                    const newAd = {
+                        id: ads.length + 1,
+                        ...body,
+                        keywords: body.keywords.split(',').map(k => k.trim()).filter(k => k),
+                        createdAt: new Date().toISOString()
+                    };
+                    return newAd;
+                }
+                return ads;
+            }
+
+            if (endpoint.startsWith('/ads/') && options.method === 'PUT') {
+                const body = JSON.parse(config.body);
+                return {
+                    id: editingAdId,
+                    ...body,
+                    keywords: body.keywords.split(',').map(k => k.trim()).filter(k => k)
+                };
+            }
+
+            if (endpoint === '/scheduled-ads') {
+                if (options.method === 'POST') {
+                    const body = JSON.parse(config.body);
+                    const newScheduledAd = {
+                        id: scheduledAds.length + 1,
+                        ...body,
+                        isActive: true,
+                        createdAt: new Date().toISOString()
+                    };
+                    return newScheduledAd;
+                }
+                return scheduledAds;
+            }
+
+            if (endpoint === '/groups') {
+                return groups;
+            }
+
+            return { success: true };
+        }
 
         // Auth functions
         function showLogin() {
@@ -691,78 +775,80 @@
             clearMessages();
         }
 
-        function login() {
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value.trim();
+        async function login() {
+            try {
+                const email = document.getElementById('loginEmail').value.trim();
+                const password = document.getElementById('loginPassword').value.trim();
 
-            if (!email || !password) {
-                showMessage('loginMessage', 'Preencha todos os campos', 'error');
-                return;
-            }
+                if (!email || !password) {
+                    showMessage('loginMessage', 'Preencha todos os campos', 'error');
+                    return;
+                }
 
-            const user = users.find(u => u.email === email && u.password === password);
-            if (user) {
-                currentUser = user;
+                const response = await apiRequest('/login', {
+                    method: 'POST',
+                    body: { email, password }
+                });
+
+                authToken = response.token;
+                currentUser = response.user;
                 showDashboard();
-                loadData();
-            } else {
-                showMessage('loginMessage', 'Email ou senha incorretos', 'error');
+                initSocket();
+                await loadData();
+
+            } catch (error) {
+                showMessage('loginMessage', error.message, 'error');
             }
         }
 
-        function register() {
-            const name = document.getElementById('registerName').value.trim();
-            const email = document.getElementById('registerEmail').value.trim();
-            const password = document.getElementById('registerPassword').value.trim();
-            const confirmPassword = document.getElementById('confirmPassword').value.trim();
+        async function register() {
+            try {
+                const name = document.getElementById('registerName').value.trim();
+                const email = document.getElementById('registerEmail').value.trim();
+                const password = document.getElementById('registerPassword').value.trim();
+                const confirmPassword = document.getElementById('confirmPassword').value.trim();
 
-            // CORREÇÃO: Validação completa dos campos
-            if (!name || !email || !password || !confirmPassword) {
-                showMessage('registerMessage', 'Preencha todos os campos', 'error');
-                return;
+                if (!name || !email || !password || !confirmPassword) {
+                    showMessage('registerMessage', 'Preencha todos os campos', 'error');
+                    return;
+                }
+
+                if (password !== confirmPassword) {
+                    showMessage('registerMessage', 'Senhas não coincidem', 'error');
+                    return;
+                }
+
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    showMessage('registerMessage', 'Email inválido', 'error');
+                    return;
+                }
+
+                const response = await apiRequest('/register', {
+                    method: 'POST',
+                    body: { name, email, password }
+                });
+
+                showMessage('registerMessage', 'Cadastro realizado com sucesso!', 'success');
+                
+                setTimeout(() => {
+                    showLogin();
+                    clearForm('register');
+                }, 2000);
+
+            } catch (error) {
+                showMessage('registerMessage', error.message, 'error');
             }
-
-            // Validação de senhas coincidentes
-            if (password !== confirmPassword) {
-                showMessage('registerMessage', 'Senhas não coincidem', 'error');
-                return;
-            }
-
-            // Validação de email já cadastrado
-            if (users.find(u => u.email === email)) {
-                showMessage('registerMessage', 'Email já cadastrado', 'error');
-                return;
-            }
-
-            // Validação de formato do email
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                showMessage('registerMessage', 'Email inválido', 'error');
-                return;
-            }
-
-            // Criar novo usuário
-            const newUser = {
-                id: Date.now(),
-                name,
-                email,
-                password,
-                createdAt: new Date().toISOString()
-            };
-
-            users.push(newUser);
-            showMessage('registerMessage', 'Cadastro realizado com sucesso!', 'success');
-            
-            // Limpar formulário e voltar para login após 2 segundos
-            setTimeout(() => {
-                showLogin();
-                clearForm('register');
-            }, 2000);
         }
 
         function logout() {
             currentUser = null;
+            authToken = null;
             isConnected = false;
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
             document.getElementById('authSection').classList.remove('hidden');
             document.getElementById('dashboardSection').classList.add('hidden');
             clearForm('login');
@@ -774,6 +860,34 @@
             document.getElementById('dashboardSection').classList.remove('hidden');
             document.getElementById('userName').textContent = currentUser.name;
             showSection('dashboard');
+        }
+
+        // Data loading
+        async function loadData() {
+            try {
+                // Load ads
+                ads = await apiRequest('/ads');
+                
+                // Load scheduled ads
+                scheduledAds = await apiRequest('/scheduled-ads');
+                
+                // Load groups
+                const groupsData = await apiRequest('/groups');
+                groups = groupsData;
+                
+                updateStats();
+                updateGroupsList();
+                updateGroupsSelection();
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalAds').textContent = ads.length;
+            document.getElementById('activeAds').textContent = ads.filter(ad => ad.status === 'active').length;
+            document.getElementById('scheduledCount').textContent = scheduledAds.filter(ad => ad.isActive).length;
+            document.getElementById('groupsCount').textContent = groups.length;
         }
 
         // Navigation
@@ -806,19 +920,14 @@
 
         // WhatsApp connection
         function connectWhatsApp() {
-            if (!currentUser) return;
+            if (!currentUser || !socket) return;
             socket.emit('start-whatsapp', { userId: currentUser.id });
             updateConnectionStatus('connecting', 'Conectando...');
         }
 
         function disconnectWhatsApp() {
-            if (!currentUser) return;
-            isConnected = false;
-            updateConnectionStatus('disconnected', 'Desconectado do WhatsApp');
-            document.getElementById('qrCodeContainer').classList.add('hidden');
-            groups = [];
-            updateGroupsList();
-            updateStats();
+            if (!currentUser || !socket) return;
+            socket.emit('disconnect-whatsapp', { userId: currentUser.id });
         }
 
         function updateConnectionStatus(status, text) {
@@ -846,47 +955,32 @@
             textElement.textContent = text;
         }
 
-        // Data management
-        function loadData() {
-            // Filter data for current user
-            ads = ads.filter(ad => ad.userId === currentUser.id);
-            scheduledAds = scheduledAds.filter(ad => ad.userId === currentUser.id);
-            updateStats();
-        }
-
-        function updateStats() {
-            document.getElementById('totalAds').textContent = ads.length;
-            document.getElementById('activeAds').textContent = ads.filter(ad => ad.status === 'active').length;
-            document.getElementById('scheduledCount').textContent = scheduledAds.filter(ad => ad.isActive).length;
-            document.getElementById('groupsCount').textContent = groups.length;
-        }
-
         // Ad management
-        function createAd() {
-            const title = document.getElementById('adTitle').value.trim();
-            const message = document.getElementById('adMessage').value.trim();
-            const keywords = document.getElementById('adKeywords').value.trim();
-            const status = document.getElementById('adStatus').value;
+        async function createAd() {
+            try {
+                const title = document.getElementById('adTitle').value.trim();
+                const message = document.getElementById('adMessage').value.trim();
+                const keywords = document.getElementById('adKeywords').value.trim();
+                const status = document.getElementById('adStatus').value;
 
-            if (!title || !message) {
-                showMessage('createAdMessage', 'Preencha título e mensagem', 'error');
-                return;
+                if (!title || !message) {
+                    showMessage('createAdMessage', 'Preencha título e mensagem', 'error');
+                    return;
+                }
+
+                const newAd = await apiRequest('/ads', {
+                    method: 'POST',
+                    body: { title, message, keywords, status }
+                });
+
+                ads.push(newAd);
+                clearForm('createAd');
+                updateStats();
+                showMessage('createAdMessage', 'Anúncio criado com sucesso!', 'success');
+
+            } catch (error) {
+                showMessage('createAdMessage', error.message, 'error');
             }
-
-            const newAd = {
-                id: Date.now(),
-                userId: currentUser.id,
-                title,
-                message,
-                keywords: keywords ? keywords.split(',').map(k => k.trim()) : [],
-                status,
-                createdAt: new Date().toISOString()
-            };
-
-            ads.push(newAd);
-            clearForm('createAd');
-            updateStats();
-            showMessage('createAdMessage', 'Anúncio criado com sucesso!', 'success');
         }
 
         function loadManageAds() {
@@ -933,32 +1027,35 @@
             document.getElementById('editAdModal').classList.remove('hidden');
         }
 
-        function saveEditAd() {
-            const title = document.getElementById('editAdTitle').value.trim();
-            const message = document.getElementById('editAdMessageText').value.trim();
-            const keywords = document.getElementById('editAdKeywords').value.trim();
-            const status = document.getElementById('editAdStatus').value;
+        async function saveEditAd() {
+            try {
+                const title = document.getElementById('editAdTitle').value.trim();
+                const message = document.getElementById('editAdMessageText').value.trim();
+                const keywords = document.getElementById('editAdKeywords').value.trim();
+                const status = document.getElementById('editAdStatus').value;
 
-            if (!title || !message) {
-                showMessage('editAdMessage', 'Preencha título e mensagem', 'error');
-                return;
-            }
+                if (!title || !message) {
+                    showMessage('editAdMessage', 'Preencha título e mensagem', 'error');
+                    return;
+                }
 
-            const adIndex = ads.findIndex(a => a.id === editingAdId);
-            if (adIndex !== -1) {
-                ads[adIndex] = {
-                    ...ads[adIndex],
-                    title,
-                    message,
-                    keywords: keywords ? keywords.split(',').map(k => k.trim()) : [],
-                    status,
-                    updatedAt: new Date().toISOString()
-                };
+                const updatedAd = await apiRequest(`/ads/${editingAdId}`, {
+                    method: 'PUT',
+                    body: { title, message, keywords, status }
+                });
+
+                const adIndex = ads.findIndex(a => a.id === editingAdId);
+                if (adIndex !== -1) {
+                    ads[adIndex] = updatedAd;
+                }
 
                 closeEditAdModal();
                 loadManageAds();
                 updateStats();
                 showMessage('manageAdsMessage', 'Anúncio atualizado com sucesso!', 'success');
+
+            } catch (error) {
+                showMessage('editAdMessage', error.message, 'error');
             }
         }
 
@@ -968,80 +1065,128 @@
             clearMessages('editAdMessage');
         }
 
-        function toggleAdStatus(adId) {
-            const adIndex = ads.findIndex(a => a.id === adId);
-            if (adIndex !== -1) {
-                ads[adIndex].status = ads[adIndex].status === 'active' ? 'inactive' : 'active';
+        async function toggleAdStatus(adId) {
+            try {
+                const ad = ads.find(a => a.id === adId);
+                if (!ad) return;
+
+                const newStatus = ad.status === 'active' ? 'inactive' : 'active';
+                
+                const updatedAd = await apiRequest(`/ads/${adId}`, {
+                    method: 'PUT',
+                    body: { ...ad, status: newStatus }
+                });
+
+                const adIndex = ads.findIndex(a => a.id === adId);
+                if (adIndex !== -1) {
+                    ads[adIndex] = { ...ads[adIndex], status: newStatus };
+                }
+
                 loadManageAds();
                 updateStats();
-                showMessage('manageAdsMessage', 'Status atualizado!', 'success');
+                showMessage('manageAdsMessage', `Anúncio ${newStatus === 'active' ? 'ativado' : 'desativado'} com sucesso!`, 'success');
+
+            } catch (error) {
+                showMessage('manageAdsMessage', error.message, 'error');
             }
         }
 
-        function deleteAd(adId) {
-            if (!confirm('Excluir este anúncio?')) return;
-            
-            ads = ads.filter(a => a.id !== adId);
-            loadManageAds();
-            updateStats();
-            showMessage('manageAdsMessage', 'Anúncio excluído!', 'success');
+        async function deleteAd(adId) {
+            if (!confirm('Deseja realmente excluir este anúncio?')) return;
+
+            try {
+                await apiRequest(`/ads/${adId}`, { method: 'DELETE' });
+
+                ads = ads.filter(a => a.id !== adId);
+                loadManageAds();
+                updateStats();
+                showMessage('manageAdsMessage', 'Anúncio excluído com sucesso!', 'success');
+
+            } catch (error) {
+                showMessage('manageAdsMessage', error.message, 'error');
+            }
         }
 
-        // Scheduled ads
+        // Scheduled ads management
         function addTimeInput() {
             const timeInputs = document.getElementById('timeInputs');
-            const input = document.createElement('input');
-            input.type = 'time';
-            input.className = 'time-input';
-            timeInputs.appendChild(input);
+            const newTimeInput = document.createElement('input');
+            newTimeInput.type = 'time';
+            newTimeInput.className = 'time-input';
+            newTimeInput.value = '09:00';
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-danger';
+            removeBtn.textContent = 'X';
+            removeBtn.style.padding = '10px';
+            removeBtn.onclick = () => {
+                timeInputs.removeChild(newTimeInput);
+                timeInputs.removeChild(removeBtn);
+            };
+            
+            timeInputs.appendChild(newTimeInput);
+            timeInputs.appendChild(removeBtn);
         }
 
-        function createScheduledAd() {
-            const title = document.getElementById('scheduleTitle').value.trim();
-            const message = document.getElementById('scheduleMessageText').value.trim();
-            
-            const daysOfWeek = Array.from(document.querySelectorAll('.day-checkbox input:checked')).map(cb => parseInt(cb.value));
-            const times = Array.from(document.querySelectorAll('.time-input')).map(input => input.value).filter(t => t);
-            const selectedGroups = Array.from(document.querySelectorAll('#groupsSelection input:checked')).map(cb => cb.value);
+        async function createScheduledAd() {
+            try {
+                const title = document.getElementById('scheduleTitle').value.trim();
+                const message = document.getElementById('scheduleMessageText').value.trim();
+                const selectedDays = Array.from(document.querySelectorAll('.day-checkbox input:checked')).map(cb => parseInt(cb.value));
+                const selectedGroups = Array.from(document.querySelectorAll('#groupsSelection input:checked')).map(cb => cb.value);
+                const times = Array.from(document.querySelectorAll('.time-input')).map(input => input.value);
 
-            if (!title || !message || daysOfWeek.length === 0 || times.length === 0 || selectedGroups.length === 0) {
-                showMessage('scheduleMessage', 'Preencha todos os campos e selecione pelo menos um dia, horário e grupo', 'error');
-                return;
+                if (!title || !message) {
+                    showMessage('scheduleMessage', 'Preencha título e mensagem', 'error');
+                    return;
+                }
+
+                if (selectedDays.length === 0) {
+                    showMessage('scheduleMessage', 'Selecione pelo menos um dia da semana', 'error');
+                    return;
+                }
+
+                if (selectedGroups.length === 0) {
+                    showMessage('scheduleMessage', 'Selecione pelo menos um grupo', 'error');
+                    return;
+                }
+
+                const newScheduledAd = await apiRequest('/scheduled-ads', {
+                    method: 'POST',
+                    body: {
+                        title,
+                        message,
+                        days: selectedDays,
+                        times,
+                        groups: selectedGroups
+                    }
+                });
+
+                scheduledAds.push(newScheduledAd);
+                clearForm('schedule');
+                updateStats();
+                loadScheduledAds();
+                showMessage('scheduleMessage', 'Agendamento criado com sucesso!', 'success');
+
+            } catch (error) {
+                showMessage('scheduleMessage', error.message, 'error');
             }
-
-            const newScheduled = {
-                id: Date.now(),
-                userId: currentUser.id,
-                title,
-                message,
-                daysOfWeek,
-                times,
-                selectedGroups,
-                isActive: true,
-                createdAt: new Date().toISOString()
-            };
-
-            scheduledAds.push(newScheduled);
-            clearForm('schedule');
-            updateStats();
-            loadScheduledAds();
-            showMessage('scheduleMessage', 'Agendamento criado com sucesso!', 'success');
         }
 
         function loadScheduledAds() {
-            updateGroupsSelection();
-            
-            const scheduledList = document.getElementById('scheduledAdsList');
-            const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            const scheduledAdsList = document.getElementById('scheduledAdsList');
             
             if (scheduledAds.length === 0) {
-                scheduledList.innerHTML = '<p style="color: var(--text-secondary);">Nenhum agendamento encontrado</p>';
+                scheduledAdsList.innerHTML = '<p style="color: var(--text-secondary);">Nenhum agendamento encontrado</p>';
                 return;
             }
 
-            scheduledList.innerHTML = scheduledAds.map(scheduled => `
+            const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+            scheduledAdsList.innerHTML = scheduledAds.map(scheduled => `
                 <div class="scheduled-ad-item">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <h4 style="color: var(--accent-orange);">${scheduled.title}</h4>
                         <span style="padding: 5px 10px; border-radius: 15px; font-size: 12px; ${scheduled.isActive ? 'background: rgba(16, 185, 129, 0.2); color: var(--accent-green)' : 'background: rgba(239, 68, 68, 0.2); color: var(--accent-red)'}">
                             ${scheduled.isActive ? 'Ativo' : 'Inativo'}
@@ -1049,37 +1194,60 @@
                     </div>
                     <p style="margin-bottom: 10px;">${scheduled.message}</p>
                     <div class="schedule-summary">
-                        <strong>Dias:</strong> ${scheduled.daysOfWeek.map(d => dayNames[d]).join(', ')}<br>
-                        <strong>Horários:</strong> ${scheduled.times.join(', ')}<br>
-                        <strong>Grupos:</strong> ${scheduled.selectedGroups.length} selecionados
+                        <p><strong>Dias:</strong> ${scheduled.days.map(d => dayNames[d]).join(', ')}</p>
+                        <p><strong>Horários:</strong> ${scheduled.times.join(', ')}</p>
+                        <p><strong>Grupos:</strong> ${scheduled.groups.length} selecionados</p>
                     </div>
                     <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
-                        <button class="btn ${scheduled.isActive ? 'btn-danger' : 'btn-success'}" onclick="toggleScheduledStatus(${scheduled.id})">
+                        <button class="btn ${scheduled.isActive ? 'btn-danger' : 'btn-success'}" onclick="toggleScheduledAdStatus(${scheduled.id})">
                             ${scheduled.isActive ? 'Desativar' : 'Ativar'}
                         </button>
-                        <button class="btn btn-danger" onclick="deleteScheduled(${scheduled.id})">Excluir</button>
+                        <button class="btn btn-danger" onclick="deleteScheduledAd(${scheduled.id})">Excluir</button>
                     </div>
                 </div>
             `).join('');
         }
 
-        function toggleScheduledStatus(scheduledId) {
-            const scheduledIndex = scheduledAds.findIndex(s => s.id === scheduledId);
-            if (scheduledIndex !== -1) {
-                scheduledAds[scheduledIndex].isActive = !scheduledAds[scheduledIndex].isActive;
+        async function toggleScheduledAdStatus(scheduledId) {
+            try {
+                const scheduled = scheduledAds.find(s => s.id === scheduledId);
+                if (!scheduled) return;
+
+                const newStatus = !scheduled.isActive;
+                
+                await apiRequest(`/scheduled-ads/${scheduledId}`, {
+                    method: 'PUT',
+                    body: { ...scheduled, isActive: newStatus }
+                });
+
+                const scheduledIndex = scheduledAds.findIndex(s => s.id === scheduledId);
+                if (scheduledIndex !== -1) {
+                    scheduledAds[scheduledIndex].isActive = newStatus;
+                }
+
                 loadScheduledAds();
                 updateStats();
-                showMessage('scheduleMessage', 'Status do agendamento atualizado!', 'success');
+                showMessage('scheduleMessage', `Agendamento ${newStatus ? 'ativado' : 'desativado'} com sucesso!`, 'success');
+
+            } catch (error) {
+                showMessage('scheduleMessage', error.message, 'error');
             }
         }
 
-        function deleteScheduled(scheduledId) {
-            if (!confirm('Excluir este agendamento?')) return;
-            
-            scheduledAds = scheduledAds.filter(s => s.id !== scheduledId);
-            loadScheduledAds();
-            updateStats();
-            showMessage('scheduleMessage', 'Agendamento excluído!', 'success');
+        async function deleteScheduledAd(scheduledId) {
+            if (!confirm('Deseja realmente excluir este agendamento?')) return;
+
+            try {
+                await apiRequest(`/scheduled-ads/${scheduledId}`, { method: 'DELETE' });
+
+                scheduledAds = scheduledAds.filter(s => s.id !== scheduledId);
+                loadScheduledAds();
+                updateStats();
+                showMessage('scheduleMessage', 'Agendamento excluído com sucesso!', 'success');
+
+            } catch (error) {
+                showMessage('scheduleMessage', error.message, 'error');
+            }
         }
 
         // Groups management
@@ -1093,10 +1261,9 @@
 
             groupsList.innerHTML = groups.map(group => `
                 <div class="group-item">
-                    <div>
+                    <div style="flex: 1;">
                         <h4 style="color: var(--accent-blue);">${group.name}</h4>
-                        <p style="color: var(--text-secondary); font-size: 14px;">${group.participantCount} membros</p>
-                        <p style="color: var(--text-secondary); font-size: 12px; font-family: monospace;">${group.id}</p>
+                        <p style="font-size: 14px; color: var(--text-secondary);">ID: ${group.id}</p>
                     </div>
                 </div>
             `).join('');
@@ -1104,32 +1271,41 @@
 
         function updateGroupsSelection() {
             const groupsSelection = document.getElementById('groupsSelection');
+            const testGroupSelect = document.getElementById('testGroupSelect');
             
             if (groups.length === 0) {
                 groupsSelection.innerHTML = '<p style="color: var(--text-secondary);">Conecte o WhatsApp para ver os grupos</p>';
+                testGroupSelect.innerHTML = '<option value="">Selecione um grupo</option>';
                 return;
             }
 
             groupsSelection.innerHTML = groups.map(group => `
-                <label class="group-item" style="cursor: pointer;">
+                <div class="group-item">
                     <input type="checkbox" value="${group.id}" class="group-checkbox">
-                    <div>
-                        <strong>${group.name}</strong>
-                        <div style="color: var(--text-secondary); font-size: 14px;">${group.participantCount} membros</div>
+                    <div style="flex: 1;">
+                        <h4 style="color: var(--accent-blue);">${group.name}</h4>
+                        <p style="font-size: 14px; color: var(--text-secondary);">ID: ${group.id}</p>
                     </div>
-                </label>
+                </div>
             `).join('');
+
+            testGroupSelect.innerHTML = '<option value="">Selecione um grupo</option>' + 
+                groups.map(group => `<option value="${group.id}">${group.name}</option>`).join('');
         }
 
         function refreshGroups() {
-            if (currentUser && isConnected) {
-                showMessage('groupsMessage', 'Atualizando lista de grupos...', 'success');
-                socket.emit('get-groups', { userId: currentUser.id });
-            } else {
+            if (!isConnected) {
                 showMessage('groupsMessage', 'Conecte o WhatsApp primeiro', 'error');
+                return;
+            }
+
+            if (socket && currentUser) {
+                socket.emit('refresh-groups', { userId: currentUser.id });
+                showMessage('groupsMessage', 'Atualizando lista de grupos...', 'success');
             }
         }
 
+        // Test message functions
         function testMessage() {
             if (!isConnected) {
                 showMessage('groupsMessage', 'Conecte o WhatsApp primeiro', 'error');
@@ -1140,19 +1316,8 @@
                 showMessage('groupsMessage', 'Nenhum grupo disponível', 'error');
                 return;
             }
-            
-            // Populate test group select
-            const testGroupSelect = document.getElementById('testGroupSelect');
-            testGroupSelect.innerHTML = '<option value="">Selecione um grupo</option>' +
-                groups.map(group => `<option value="${group.id}">${group.name}</option>`).join('');
-            
-            document.getElementById('testMessageModal').classList.remove('hidden');
-        }
 
-        function closeTestMessageModal() {
-            document.getElementById('testMessageModal').classList.add('hidden');
-            document.getElementById('testMessageText').value = '';
-            document.getElementById('testGroupSelect').value = '';
+            document.getElementById('testMessageModal').classList.remove('hidden');
         }
 
         function sendTestMessage() {
@@ -1160,116 +1325,127 @@
             const message = document.getElementById('testMessageText').value.trim();
 
             if (!groupId || !message) {
-                showMessage('groupsMessage', 'Selecione um grupo e digite uma mensagem', 'error');
+                alert('Selecione um grupo e digite uma mensagem');
                 return;
             }
 
-            socket.emit('send-test-message', {
-                userId: currentUser.id,
-                groupId,
-                message
-            });
+            if (socket && currentUser) {
+                socket.emit('send-test-message', {
+                    userId: currentUser.id,
+                    groupId,
+                    message
+                });
+            }
 
             closeTestMessageModal();
-            showMessage('groupsMessage', 'Mensagem enviada com sucesso!', 'success');
+        }
+
+        function closeTestMessageModal() {
+            document.getElementById('testMessageModal').classList.add('hidden');
+            document.getElementById('testGroupSelect').value = '';
+            document.getElementById('testMessageText').value = '';
         }
 
         // Utility functions
-        function showMessage(containerId, message, type) {
-            const container = document.getElementById(containerId) || document.getElementById(containerId.replace('Message', ''));
-            if (!container) return;
+        function showMessage(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            element.innerHTML = `<div class="message ${type}">${message}</div>`;
             
-            // Remove existing messages in this container
-            const existingMessages = container.querySelectorAll('.message');
-            existingMessages.forEach(msg => msg.remove());
-            
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${type}`;
-            messageDiv.textContent = message;
-            
-            container.insertBefore(messageDiv, container.firstChild);
-            
-            // Auto remove after 5 seconds
             setTimeout(() => {
-                if (messageDiv.parentNode) {
-                    messageDiv.remove();
+                if (element.innerHTML.includes(message)) {
+                    element.innerHTML = '';
                 }
             }, 5000);
         }
 
-        function clearMessages(containerId = null) {
-            if (containerId) {
-                const container = document.getElementById(containerId);
-                if (container) {
-                    container.querySelectorAll('.message').forEach(msg => msg.remove());
-                }
-            } else {
-                // Clear all messages
-                document.querySelectorAll('.message').forEach(msg => msg.remove());
-            }
+        function clearMessages(specificId = null) {
+            const messageElements = specificId ? 
+                [document.getElementById(specificId)] : 
+                document.querySelectorAll('[id$="Message"]');
+
+            messageElements.forEach(element => {
+                if (element) element.innerHTML = '';
+            });
         }
 
         function clearForm(formType) {
-            switch (formType) {
-                case 'login':
-                    document.getElementById('loginEmail').value = '';
-                    document.getElementById('loginPassword').value = '';
-                    break;
-                case 'register':
-                    document.getElementById('registerName').value = '';
-                    document.getElementById('registerEmail').value = '';
-                    document.getElementById('registerPassword').value = '';
-                    document.getElementById('confirmPassword').value = '';
-                    break;
-                case 'createAd':
-                    document.getElementById('adTitle').value = '';
-                    document.getElementById('adMessage').value = '';
-                    document.getElementById('adKeywords').value = '';
-                    document.getElementById('adStatus').value = 'active';
-                    break;
-                case 'schedule':
-                    document.getElementById('scheduleTitle').value = '';
-                    document.getElementById('scheduleMessageText').value = '';
-                    document.querySelectorAll('.day-checkbox input').forEach(cb => cb.checked = false);
-                    document.querySelectorAll('#groupsSelection input').forEach(cb => cb.checked = false);
-                    // Reset time inputs to just one
-                    const timeInputs = document.getElementById('timeInputs');
-                    timeInputs.innerHTML = '<input type="time" class="time-input" value="09:00">';
-                    break;
+            const formElements = {
+                'login': ['loginEmail', 'loginPassword'],
+                'register': ['registerName', 'registerEmail', 'registerPassword', 'confirmPassword'],
+                'createAd': ['adTitle', 'adMessage', 'adKeywords'],
+                'schedule': ['scheduleTitle', 'scheduleMessageText']
+            };
+
+            if (formElements[formType]) {
+                formElements[formType].forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) element.value = '';
+                });
+            }
+
+            if (formType === 'schedule') {
+                // Clear checkboxes
+                document.querySelectorAll('.day-checkbox input').forEach(cb => cb.checked = false);
+                document.querySelectorAll('#groupsSelection input').forEach(cb => cb.checked = false);
+                
+                // Reset time inputs to just one
+                const timeInputs = document.getElementById('timeInputs');
+                timeInputs.innerHTML = '<input type="time" class="time-input" value="09:00">';
             }
         }
 
-        // Event listeners
-        document.addEventListener('DOMContentLoaded', () => {
-            // Auto-login for demo (remove in production)
-            if (!currentUser) {
-                document.getElementById('loginEmail').value = 'admin@test.com';
-                document.getElementById('loginPassword').value = '123456';
-            }
-        });
-
-        // Close modals when clicking outside
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal')) {
-                if (e.target.id === 'testMessageModal') {
-                    closeTestMessageModal();
-                } else if (e.target.id === 'editAdModal') {
-                    closeEditAdModal();
+        // Initialize demo data
+        function initDemoData() {
+            // Sample ads
+            ads = [
+                {
+                    id: 1,
+                    title: 'Promoção Especial',
+                    message: 'Aproveite nossa promoção especial com 50% de desconto!',
+                    keywords: ['promoção', 'desconto', 'oferta'],
+                    status: 'active',
+                    createdAt: new Date().toISOString()
+                },
+                {
+                    id: 2,
+                    title: 'Novos Produtos',
+                    message: 'Confira nossos novos produtos disponíveis!',
+                    keywords: ['produtos', 'novidades', 'lançamento'],
+                    status: 'active',
+                    createdAt: new Date().toISOString()
                 }
-            }
-        });
+            ];
 
-        // Handle Enter key for login
-        document.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                if (!document.getElementById('authSection').classList.contains('hidden')) {
-                    if (!document.getElementById('loginForm').classList.contains('hidden')) {
-                        login();
-                    } else if (!document.getElementById('registerForm').classList.contains('hidden')) {
-                        register();
-                    }
+            // Sample scheduled ads
+            scheduledAds = [
+                {
+                    id: 1,
+                    title: 'Mensagem Diária',
+                    message: 'Bom dia! Confira nossas ofertas do dia!',
+                    days: [1, 2, 3, 4, 5],
+                    times: ['09:00'],
+                    groups: ['group1', 'group2'],
+                    isActive: true,
+                    createdAt: new Date().toISOString()
                 }
-            }
+            ];
+
+            // Sample groups
+            groups = [
+                { id: 'group1@g.us', name: 'Grupo de Vendas' },
+                { id: 'group2@g.us', name: 'Clientes VIP' },
+                { id: 'group3@g.us', name: 'Promoções' }
+            ];
+        }
+
+        // Initialize app when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initDemoData();
+            updateStats();
+            updateGroupsList();
+            updateGroupsSelection();
         });
     </script>
 </body>
